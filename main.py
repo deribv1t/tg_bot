@@ -1,7 +1,11 @@
-import telebot
 from telebot import types
+from flask import Flask
+import telebot
 import base64
 
+
+
+app = Flask(__name__)
 bot = telebot.TeleBot('7135571090:AAHGabtA2STdUVlFdtqR8QNBHBnXXaN1rKo')
 
 # Хранилище данных пользователей
@@ -10,6 +14,10 @@ input_deal = False
 price_sell = ''
 description = ''
 # Установка команд меню
+@app.route('/')
+def home():
+    return "Бот жив! ✅"
+    
 bot.set_my_commands([
     types.BotCommand("start", "Запустить бота")
 ])
@@ -616,4 +624,13 @@ def ready_exchange(chat_id,message_id):
     user_data[chat_id]['last_message_id'] = message_id
 
 
-bot.polling(none_stop=True, interval=0)
+def run_bot():
+    bot.polling(none_stop=True, interval=0)
+
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
+
+if __name__ == "__main__":
+    # Запускаем бота и Flask в разных потоках
+    threading.Thread(target=run_bot).start()
+    threading.Thread(target=run_flask).start()
