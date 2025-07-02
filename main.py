@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 import base64
 
-bot = telebot.TeleBot('7135571090:AAHGabtA2STdUVlFdtqR8QNBHBnXXaN1rKo')
+bot = telebot.TeleBot('8008231968:AAHG3nZeDq2E3yTQLut6TUyt1mbcl_hVvts')
 
 # Хранилище данных пользователей
 user_data = {}
@@ -17,32 +17,72 @@ bot.set_my_commands([
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     if message.text == '/start':
+        chat_id = message.chat.id
+        if chat_id not in user_data:
+            user_data[chat_id] = {'card_details': '', 'waiting_for_card': False,
+                'ton_details': '', 'waiting_for_ton': False,
+                'input_TON': False, 'input_deal':False,
+                'price_sell':0.0,'description':'',
+                'encoded':None, 'deal_id':0,
+                "chat_dealer": 0,"mes_dealer":0
+            }
         main_menu(message)
 
     elif len(message.text.split()) > 1:
+        chat_id = message.chat.id
+        if chat_id not in user_data:
+            user_data[chat_id] = {'card_details': '', 'waiting_for_card': False,
+                'ton_details': '', 'waiting_for_ton': False,
+                'input_TON': False, 'input_deal':False,
+                'price_sell':0.0,'description':'',
+                'encoded':None, 'deal_id':0,
+                "chat_dealer": 0,"mes_dealer":0
+            }
         encoded = message.text.split()[1]
         try:
             padded = encoded + '=' * (4 - len(encoded) % 4)
             decoded = base64.urlsafe_b64decode(padded).decode()
-            chat_id, message_id = map(int, decoded.split('/'))
-
-            if chat_id == message.chat.id:
-                bot.send_message(
-                    chat_id=chat_id,
-                    text=f"❌ Вы не можете участвовать в своей же сделке."
-                )
-            else:
-                price_sell = user_data[chat_id]['price_sell']
-                description = user_data[chat_id]['description']
-
-                bot.send_message(
-                    chat_id=message.chat.id,
-                    text=f"✅ Сделка успешно создана!\n\n💰 Сумма: {price_sell} {user_data[chat_id]['currency']}\n\
-📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/ExempleExemple_bot_bot?start={encoded}"
-                )
+            id_chat, id_message = map(int, decoded.split('/'))
             
         except Exception as e:
-            bot.send_message(message.chat.id, "⚠ Ссылка недействительна или сделка уже завершена")
+            bot.send_message(message.chat.id, "Сделка не найдена.")
+
+        if id_chat == message.chat.id:
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=f"❌ Вы не можете участвовать в своей же сделке."
+            )
+        else:
+            price_sell = user_data[id_chat]['price_sell']
+            description = user_data[id_chat]['description']
+
+            bot.send_message(   
+                chat_id=message.chat.id,
+                text=f"✅ Сделка успешно создана!\n\n💰 Сумма: {price_sell} {user_data[id_chat]['currency']}\n\
+📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/ExempleExemple_bot_bot?start={encoded}"
+            )
+
+            dealer_mes_id = bot.send_message(   
+                chat_id=id_chat,
+                text=f"*✅ Покупатель присоединился к сделке.*\n\n✅ Успешных сделок: 27\nОжидайте оплаты",
+                parse_mode="Markdown"
+            )
+
+            confirm_menu = types.InlineKeyboardMarkup()
+            confirm = types.InlineKeyboardButton(text='✅Подтвердите, что вы перевели деньги', 
+                                                 callback_data='confirm_pay')
+            confirm_menu.add(confirm)
+
+            bot.send_message(   
+                chat_id=chat_id,
+                text=f"*✅ Переведите деньги на наш счёт.* \n\nПосле перевода нажмите кнопку подтверждения оплаты",
+                parse_mode="Markdown",
+                reply_markup=confirm_menu
+            )
+            
+            user_data[chat_id]["chat_dealer"] = id_chat
+            user_data[chat_id]["mes_dealer"] = dealer_mes_id.message_id
+        
     
     else:
         chat_id = message.chat.id
@@ -59,10 +99,10 @@ def get_text_messages(message):
             message_card = f"""*💳 Ваши текущие реквизиты карты: *`{message.text}`\n\n\
 Отправьте новые реквизиты для изменения или нажмите кнопку ниже для возврата в меню."""
             try:
-                bot.edit_message_text(
+                bot.edit_message_caption(
                     chat_id=chat_id,
                     message_id=last_msg_id,
-                    text=message_card,
+                    caption=message_card,
                     parse_mode="Markdown",
                     reply_markup=card_menu
                 )
@@ -90,10 +130,10 @@ def get_text_messages(message):
 Отправьте новый адрес кошелька для изменения или нажмите кнопку ниже для возврата в меню."
 
             try:
-                bot.edit_message_text(
+                bot.edit_message_caption(
                     chat_id=chat_id,
                     message_id=last_msg_id,
-                    text=message_ton,
+                    caption=message_ton,
                     parse_mode="Markdown",
                     reply_markup=ton_menu
                 )
@@ -114,15 +154,11 @@ def get_text_messages(message):
                 price_sell = float(price_sell)
 
                 if user_data[chat_id]['input_TON']:
-                    exchange_menu = types.InlineKeyboardMarkup()
-                    back = types.InlineKeyboardButton(text='🔙Вернуться в меню', callback_data='back_menu')
-                    exchange_menu.add(back)
                     bot.send_message(
                         chat_id=chat_id,
                         text="*💳 Отправьте реквизиты для получения оплаты:*\n\nПример:" \
                         " `ЕвроБанк - 1234567891012345`",
-                        parse_mode="Markdown",
-                        reply_markup=exchange_menu
+                        parse_mode="Markdown"
                     )
                     user_data[chat_id]['input_TON'] = False 
                 else: 
@@ -130,7 +166,7 @@ def get_text_messages(message):
                     bot.send_message(
                         chat_id=chat_id,
                         text=f"📝 Укажите, что вы предлагаете в этой сделке за {price_sell}\
-                        {user_data[chat_id]['currency']}:\n\nПример: `10 Кепок и Пепе...`",
+{user_data[chat_id]['currency']}:\n\nПример: `10 Кепок и Пепе...`",
                         parse_mode="Markdown"
                     )
                     
@@ -177,16 +213,18 @@ def main_menu(message):
 Выберите нужный раздел ниже:"""
 
     if message.text == '/start':
-        bot.send_message(message.chat.id, 
-                        text=question, 
-                        reply_markup=menu,
-                        parse_mode="Markdown",
-                        )
+        bot.send_photo(chat_id=message.chat.id, 
+                    caption=question, 
+                    photo=open('photo_2025-06-16_04-13-33.jpg', 'rb'),
+                    reply_markup=menu,
+                    parse_mode="Markdown",
+                    )
+    
     else:
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=message.chat.id,
             message_id=message.id,
-            text=question,
+            caption=question,
             parse_mode="Markdown",
             reply_markup=menu
         )
@@ -211,7 +249,8 @@ def callback_worker(call):
                               'ton_details': '', 'waiting_for_ton': False,
                               'input_TON': False, 'input_deal':False,
                               'price_sell':0.0,'description':'',
-                               'encoded':None, 'deal_id':0
+                               'encoded':None, 'deal_id':0,
+                               "chat_dealer": 0,"mes_dealer":0
                             }
     
     if call.data == "add":
@@ -228,10 +267,10 @@ def callback_worker(call):
 
 _Используйте кнопки ниже чтобы добавить/изменить реквизиты👇_"""
         
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_add,
+            caption=message_add,
             parse_mode="Markdown",
             reply_markup=add_menu
         )
@@ -247,6 +286,36 @@ _Используйте кнопки ниже чтобы добавить/изм
     # Обработка других кнопок
     elif call.data == "create":
         create_deal(chat_id,message_id)
+
+    elif call.data == "confirm_pay":
+        if chat_id == 8194815542 or chat_id == 5423423432:
+
+            confirm_menu = types.InlineKeyboardMarkup()
+            confirm = types.InlineKeyboardButton(text='✅Подтвердите, что вы отправили нфт',
+                                            callback_data='confirm_nft')
+            confirm_menu.add(confirm)
+
+            bot.send_message(
+                chat_id=user_data[chat_id]["chat_dealer"],
+                text=f"*✅ Покупатель перевел деньги на счёт нашего кошелька.*\n\nМожете отправлять ему нфт. \
+Деньги придут после подтверждения.",
+                parse_mode="Markdown",
+                reply_markup=confirm_menu
+            )
+        else: 
+            bot.send_message(
+                chat_id=chat_id,
+                text=f"*❌ Оплата не найдена!*",
+                parse_mode="Markdown"
+            )
+        
+    elif call.data == "confirm_nft":
+        bot.send_message(
+            chat_id=chat_id,
+            text=f"✅ Вас наебали! *Деньги — это зло… Так что я взял этот грех на себя. Ты должен мне сказать спасибо!*\
+**Не переживай, лох, я их потрачу с умом… Шучу, конечно, просажу на всякую хуйню. Но весело!**",
+            parse_mode="Markdown"
+            )
 
     elif call.data == "deal_TON":
         deal(chat_id,message_id,'TON')
@@ -311,10 +380,10 @@ _Используйте кнопки ниже чтобы добавить/изм
 `https://t.me/GllftEllfRobot?start=ref_{chat_id}`\n\n\
 👥 Количество рефералов: 0\n💰 Заработано с рефералов: 0.0 TON\n40% от комиссии бота"
 
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_ref,
+            caption=message_ref,
             parse_mode="Markdown",
             reply_markup=back_menu
         )
@@ -325,10 +394,10 @@ _Используйте кнопки ниже чтобы добавить/изм
         message_balance = f"*💰 Ваш баланс*\n\n📊 Сумма: 0.00 TON\n✅ Успешные сделки: 0\n\n\
 ⚠️ Ошибка: Вывод средств доступен после 3 успешной сделки"
 
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_balance,
+            caption=message_balance,
             parse_mode="Markdown",
             reply_markup=back_menu
         )
@@ -364,10 +433,10 @@ def create_add_TON(chat_id,message_id):
             message_ton = f"*🔑 Ваш текущий TON-кошелек:* `{current_ton}`\n\n\
 Отправьте новый адрес кошелька для изменения или нажмите кнопку ниже для возврата в меню."
             
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_ton,
+            caption=message_ton,
             parse_mode="Markdown",
             reply_markup=ton_menu
         )
@@ -394,10 +463,10 @@ def add_create_card(chat_id,message_id):
             message_card = f"*💳 Ваши текущие реквизиты карты: *`{current_card}`\n\n"\
 "Отправьте новые реквизиты для изменения или нажмите кнопку ниже для возврата в меню."
                 
-        bot.edit_message_text(
+        bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_card,
+            caption=message_card,
             parse_mode="Markdown",
             reply_markup=card_menu
         )
@@ -419,10 +488,10 @@ def create_deal(chat_id,message_id):
     deal_menu.add(deal_star)
     deal_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=deal_message,
+            caption=deal_message,
             parse_mode="Markdown",
             reply_markup=deal_menu
         )
@@ -440,10 +509,10 @@ def deal(chat_id,message_id,currency):
     deal_menu.add(replace_currency)
     deal_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
         chat_id=chat_id,
         message_id=message_id,
-        text=deal_message,
+        caption=deal_message,
         parse_mode="Markdown",
         reply_markup=deal_menu
     )
@@ -459,10 +528,10 @@ def deal_star(chat_id,message_id):
     back = types.InlineKeyboardButton(text='🔙Вернуться в меню', callback_data='back_menu')
     deal_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
         chat_id=chat_id,
         message_id=message_id,
-        text=deal_message,
+        caption=deal_message,
         parse_mode="Markdown",
         reply_markup=deal_menu
     )
@@ -490,10 +559,10 @@ def replace_currency(chat_id,message_id):
     )
     currency_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
         chat_id=chat_id,
         message_id=message_id,
-        text=message_currency,
+        caption=message_currency,
         parse_mode="Markdown",
         reply_markup=currency_menu
     )
@@ -561,10 +630,10 @@ def replace_money(chat_id,message_id):
     replace_menu.add(TON_KGS)
     replace_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_replace,
+            caption=message_replace,
             parse_mode="Markdown",
             reply_markup=replace_menu
         )
@@ -586,10 +655,10 @@ def price_TON(chat_id,message_id,name_money):
     price_menu.add(exchange)
     price_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_price,
+            caption=message_price,
             parse_mode="Markdown",
             reply_markup=price_menu
         )
@@ -604,10 +673,10 @@ def ready_exchange(chat_id,message_id):
     back = types.InlineKeyboardButton(text='🔙Вернуться в меню', callback_data='back_menu')
     exchange_menu.add(back)
 
-    bot.edit_message_text(
+    bot.edit_message_caption(
             chat_id=chat_id,
             message_id=message_id,
-            text=message_exchange,
+            caption=message_exchange,
             parse_mode="Markdown",
             reply_markup=exchange_menu
         )
