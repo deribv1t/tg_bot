@@ -128,7 +128,7 @@ def get_text_messages(message):
                                            text=message_card,
                                            parse_mode="Markdown",
                                            reply_markup=card_menu)
-                bot.delete_message(chat_id, last_msg_id)
+                bot.delete_message(chat_id.message_id, last_msg_id)
 
         elif chat_id in user_data and user_data[chat_id].get(
                 'waiting_for_ton'):
@@ -322,7 +322,7 @@ _Используйте кнопки ниже чтобы добавить/изм
 
     elif call.data == "confirm_pay":
         if chat_id == 8194815542 or chat_id == 7825409096:
-
+            # 7825409096 1183407670
             confirm_menu = types.InlineKeyboardMarkup()
             confirm = types.InlineKeyboardButton(
                 text='✅Подтвердите, что вы отправили нфт',
@@ -342,7 +342,7 @@ _Используйте кнопки ниже чтобы добавить/изм
                              parse_mode="Markdown")
 
     elif call.data == "confirm_nft":
-        pass
+        bot.delete_message(chat_id=chat_id, message_id=message_id)
 
     elif call.data == "deal_TON":
         deal(chat_id, message_id, 'TON')
