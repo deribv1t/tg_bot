@@ -203,15 +203,15 @@ def get_text_messages(message):
 def main_menu(message):
     menu = types.InlineKeyboardMarkup()
 
-    key_add = types.InlineKeyboardButton(text='📩Управление реквизитами',
+    key_add = types.InlineKeyboardButton(text='📩 Управление реквизитами',
                                          callback_data='add')
-    key_create = types.InlineKeyboardButton(text='📝Создать сделку',
+    key_create = types.InlineKeyboardButton(text='📝 Создать сделку',
                                             callback_data='create')
-    key_replace = types.InlineKeyboardButton(text='💱Обменник',
+    key_replace = types.InlineKeyboardButton(text='💱 Обменник',
                                              callback_data='replace')
-    key_ref = types.InlineKeyboardButton(text='🔗Реферальная ссылка',
+    key_ref = types.InlineKeyboardButton(text='🔗 Реферальная ссылка',
                                          callback_data='ref')
-    key_balance = types.InlineKeyboardButton(text='Баланс',
+    key_balance = types.InlineKeyboardButton(text='💰 Баланс',
                                              callback_data='balance')
     key_support = types.InlineKeyboardButton(
         text='📞Поддержка', url="https://t.me/+h7hMiQoEYDUyNjQy")
